@@ -116,7 +116,13 @@ $$ |      $$$$$$\ $$ | \$$ |\$$$$$$  |$$$$$$\ $$ | \$$ |$$ |  $$ |
 					// 解析JSON
 					_ = json.Unmarshal(body, &requestBody)
 
-					log.Printf("JSON 参数: %v\n", requestBody)
+					// 使用json.MarshalIndent函数打印格式化后的JSON数据
+					formattedData, err := json.MarshalIndent(requestBody, "", "    ")
+					if err != nil {
+						log.Fatalf("格式化JSON失败: %v", err)
+					}
+					log.Printf("JSON 参数:\n%s\n", formattedData)
+
 					r.Body = io.NopCloser(bytes.NewBuffer(body))
 				case "application/x-www-form-urlencoded":
 					fmt.Println("Form 参数如下: ")
