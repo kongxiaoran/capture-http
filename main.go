@@ -20,28 +20,22 @@ var staticExts = []string{".js", ".css", ".png", ".jpg", ".jpeg", ".gif", ".svg"
 func main() {
 	var recRespDataFlag string
 	var filterResource string
-	var filterOtherHttp string
-	fmt.Println(`------------------  合肥中台 http(s) 抓包工具 -------------------
-$$$$$$$$\ $$$$$$\ $$\   $$\  $$$$$$\  $$$$$$\ $$\   $$\  $$$$$$\  
-$$  _____|\_$$  _|$$$\  $$ |$$  __$$\ \_$$  _|$$$\  $$ |$$  __$$\ 
-$$ |        $$ |  $$$$\ $$ |$$ /  \__|  $$ |  $$$$\ $$ |$$ /  $$ |
-$$$$$\      $$ |  $$ $$\$$ |$$ |        $$ |  $$ $$\$$ |$$$$$$$$ |
-$$  __|     $$ |  $$ \$$$$ |$$ |        $$ |  $$ \$$$$ |$$  __$$ |
-$$ |        $$ |  $$ |\$$$ |$$ |  $$\   $$ |  $$ |\$$$ |$$ |  $$ |
-$$ |      $$$$$$\ $$ | \$$ |\$$$$$$  |$$$$$$\ $$ | \$$ |$$ |  $$ |
-\__|      \______|\__|  \__| \______/ \______|\__|  \__|\__|  \__|		  
+	fmt.Println(`------------------  http(s) 抓包工具 -------------------
+	__/\\\_______/\\\____/\\\\\\\\\_____        
+	_\///\\\___/\\\/___/\\\///////\\\___       
+	 ___\///\\\\\\/____\/\\\_____\/\\\___      
+	  _____\//\\\\______\/\\\\\\\\\\\/____     
+	   ______\/\\\\______\/\\\//////\\\____    
+		______/\\\\\\_____\/\\\____\//\\\___   
+		 ____/\\\////\\\___\/\\\_____\//\\\__  
+		  __/\\\/___\///\\\_\/\\\______\//\\\_ 
+		   _\///_______\///__\///________\///__	  
 	`)
 
 	fmt.Println("是否 打印接口返回数据（1：是，0：否，默认不打印): 请输入1或0或回车")
 	_, err := fmt.Scanln(&recRespDataFlag)
 	if err != nil {
 		recRespDataFlag = "0"
-	}
-
-	fmt.Println("是否屏蔽非 finchina请求(1：是，0：否，默认屏蔽): 请输入1或0或回车")
-	_, err2 := fmt.Scanln(&filterOtherHttp)
-	if err2 != nil {
-		filterOtherHttp = "1"
 	}
 
 	fmt.Println("是否屏蔽静态资源类请求(1：是，0：否，默认屏蔽): 请输入1或0或回车")
@@ -56,7 +50,7 @@ $$ |      $$$$$$\ $$ | \$$ |\$$$$$$  |$$$$$$\ $$ | \$$ |$$ |  $$ |
 	proxy.Verbose = false
 
 	// 设置HTTPS拦截
-	//proxy.OnRequest().HandleConnect(goproxy.AlwaysMitm)
+	proxy.OnRequest().HandleConnect(goproxy.AlwaysMitm)
 	proxy.Tr.Proxy = http.ProxyFromEnvironment
 	proxy.Tr.DialContext = nil
 	proxy.Tr.Dial = nil
@@ -67,27 +61,10 @@ $$ |      $$$$$$\ $$ | \$$ |\$$$$$$  |$$$$$$\ $$ | \$$ |$$ |  $$ |
 	// 将goproxy的Logger设置为我们的过滤Logger
 	proxy.Logger = filteredLogger
 
-	// 对CONNECT方法请求动态决定是否执行MITM
-	proxy.OnRequest().HandleConnectFunc(func(host string, ctx *goproxy.ProxyCtx) (*goproxy.ConnectAction, string) {
-		// 检查请求的目标域名
-		if strings.Contains(host, "cdn") {
-			// 对于目标域名包含 cdn 的请求，不执行MITM，直接转发
-			return goproxy.OkConnect, host
-		}
-		// 其他所有请求默认执行MITM
-		return goproxy.MitmConnect, host
-	})
-
 	// 设置请求处理器来修改请求
 	proxy.OnRequest().DoFunc(
 		func(r *http.Request, ctx *goproxy.ProxyCtx) (*http.Request, *http.Response) {
 			path := r.URL.String()
-			// 获取请求的路径
-			if strings.Contains(path, ".js") || strings.Contains(path, ".css") || strings.Contains(path, ".html") {
-				r.URL.Host = "appdev.finchina.com"
-				r.Host = "appdev.finchina.com"
-				r.URL.Scheme = "https"
-			}
 			if "1" == filterResource {
 				// 检查路径是否以静态资源的扩展名结尾
 				for _, ext := range staticExts {
@@ -96,9 +73,6 @@ $$ |      $$$$$$\ $$ | \$$ |\$$$$$$  |$$$$$$\ $$ | \$$ |$$ |  $$ |
 						return r, nil
 					}
 				}
-			}
-			if "1" == filterOtherHttp && !strings.Contains(path, "finchinaAPP") {
-				return r, nil
 			}
 
 			contentType, _, _ := mime.ParseMediaType(r.Header.Get("Content-Type"))
@@ -116,7 +90,12 @@ $$ |      $$$$$$\ $$ | \$$ |\$$$$$$  |$$$$$$\ $$ | \$$ |$$ |  $$ |
 					// 解析JSON
 					_ = json.Unmarshal(body, &requestBody)
 
-					log.Printf("JSON 参数: %v\n", requestBody)
+					// 使用json.MarshalIndent函数打印格式化后的JSON数据
+					formattedData, err := json.MarshalIndent(requestBody, "", "    ")
+					if err != nil {
+						log.Fatalf("格式化JSON失败: %v", err)
+					}
+					log.Printf("JSON 参数:\n%s\n", formattedData)
 					r.Body = io.NopCloser(bytes.NewBuffer(body))
 				case "application/x-www-form-urlencoded":
 					fmt.Println("Form 参数如下: ")
