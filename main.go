@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/elazarl/goproxy"
 )
@@ -104,6 +105,15 @@ $$ |      $$$$$$\ $$ | \$$ |\$$$$$$  |$$$$$$\ $$ | \$$ |$$ |  $$ |
 			contentType, _, _ := mime.ParseMediaType(r.Header.Get("Content-Type"))
 			if r.Method == "GET" {
 				log.Printf("接收到 GET请求: %s\n", r.URL.String())
+				message := map[string]string{
+					"id":     "notification",
+					"time":   time.Now().Format("15:04:05"),
+					"method": "Get",
+					"path":   r.URL.String(),
+					"param":  "",
+					"resp":   "",
+				}
+				SendWebsocket(message)
 			} else {
 				log.Printf("接收到 POST请求: %s\n", r.URL.String())
 				switch contentType {
@@ -122,20 +132,37 @@ $$ |      $$$$$$\ $$ | \$$ |\$$$$$$  |$$$$$$\ $$ | \$$ |$$ |  $$ |
 						log.Fatalf("格式化JSON失败: %v", err)
 					}
 					log.Printf("JSON 参数:\n%s\n", formattedData)
-
 					r.Body = io.NopCloser(bytes.NewBuffer(body))
+
+					message := map[string]string{
+						"time":   time.Now().Format("15:04:05"),
+						"method": "POST",
+						"path":   r.URL.String(),
+						"param":  string(formattedData),
+					}
+					SendWebsocket(message)
 				case "application/x-www-form-urlencoded":
 					fmt.Println("Form 参数如下: ")
 					// 解析请求体中的表单数据
 					if err := r.ParseForm(); err != nil {
 					}
+					form := ""
 					// 遍历所有表单参数并打印
 					for key, values := range r.Form {
 						// 因为同一个键可能对应多个值，所以 values 是一个字符串切片
 						for _, value := range values {
 							fmt.Printf("%s = %s\n", key, value)
+							form += key + ":" + value + "<br/>"
 						}
 					}
+
+					message := map[string]string{
+						"time":   time.Now().Format("15:04:05"),
+						"method": "POST",
+						"path":   r.URL.String(),
+						"param":  form,
+					}
+					SendWebsocket(message)
 
 				default:
 					fmt.Printf("目前不支持的 content type: %s\n", contentType)
@@ -162,8 +189,10 @@ $$ |      $$$$$$\ $$ | \$$ |\$$$$$$  |$$$$$$\ $$ | \$$ |$$ |  $$ |
 			return resp
 		})
 
+	go WebsocketAndHTML()
+
 	// 监听并服务
-	fmt.Println("--------------- 开始监听 本机9999端口 ---------------------")
+	fmt.Println("--------------- 开始监听 本机9999端口的Https请求 ---------------------")
 	log.Fatal(http.ListenAndServe(":9999", proxy))
 }
 
