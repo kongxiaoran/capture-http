@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Http(s)抓包工具-网页</title>
+    <style>
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed; /* 新增：固定表格布局 */
+        }
+        table, th, td {
+            border: 1px solid black;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+            overflow: hidden; /* 新增：防止内容溢出 */
+            white-space: nowrap; /* 新增：保持单行显示 */
+            text-overflow: ellipsis; /* 新增：超出部分显示省略号 */
+        }
+        .scrollable {
+            overflow-y: auto;
+            height: 900px; /* Adjust the height as needed */
+        }
+        /* 新增：允许调整列宽 */
+        th {
+            resize: horizontal;
+            overflow: auto;
+        }
+
+        /* 新增：弹窗样式 */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.4);
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 100%;
+            max-width: 900px; /* 控制最大宽度 */
+            word-wrap: break-word; /* 新增：内容超出宽度时换行 */
+        }
+    </style>
+</head>
+<body>
+    <div class="scrollable">
+        <table id="data-table">
+            <thead>
+                <tr>
+                    <!-- <th style="width: 1%;">序号</th> -->
+                    <th style="width: 5%;">时间</th>
+                    <th style="width: 4%;">请求方式</th>
+                    <th style="width: 40%;">路径</th>
+                    <th style="width: 40%;">请求参数</th>
+                    <!-- <th style="width: 13%;">响应结果</th> -->
+                </tr>
+            </thead>
+            <tbody>
+            </tbody>
+        </table>
+    </div>
+
+     <!-- 新增：弹窗元素 -->
+     <div id="myModal" class="modal">
+        <div class="modal-content">
+            <p id="modal-text"></p>
+        </div>
+    </div>
+
+    <script>
+        var ws = new WebSocket("ws://localhost:9998/ws");
+        var manualScroll = false; // 新增：标记是否手动滚动
+
+        ws.onmessage = function(event) {
+            var data = JSON.parse(event.data);
+            console.log(data)
+            var table = document.getElementById("data-table").getElementsByTagName('tbody')[0];
+            var row = table.insertRow();
+            // var cell1 = row.insertCell(0);
+            var cell2 = row.insertCell(0);
+            var cell3 = row.insertCell(1);
+            var cell4 = row.insertCell(2);
+            var cell5 = row.insertCell(3);
+            // var cell6 = row.insertCell(5);
+            // cell1.innerHTML = data.id;
+            cell2.innerHTML = data.time;
+            cell3.innerHTML = data.method;
+            cell4.innerHTML = data.path;
+            cell5.innerHTML = data.param;
+            // cell6.innerHTML = data.value;
+
+            // 滚动到底部，仅当未手动滚动时
+            if (!manualScroll) {
+                var scrollable = document.querySelector('.scrollable');
+                scrollable.scrollTop = scrollable.scrollHeight;
+            }
+        };
+
+        // 监听滚动事件，判断是否为手动滚动
+        document.querySelector('.scrollable').addEventListener('scroll', function() {
+            var scrollable = document.querySelector('.scrollable');
+            var maxScrollTop = scrollable.scrollHeight - scrollable.clientHeight;
+            if (scrollable.scrollTop < maxScrollTop) {
+                manualScroll = true; // 设置为手动滚动
+            } else {
+                manualScroll = false; // 自动滚动到底部，重置标记
+            }
+        });
+
+        // 新增：点击单元格弹出窗口的逻辑
+        document.getElementById('data-table').addEventListener('click', function(event) {
+            if (event.target.tagName === 'TD') {
+                var modal = document.getElementById('myModal');
+                var modalText = document.getElementById('modal-text');
+                modalText.innerText = event.target.innerText;
+                modal.style.display = 'block';
+            }
+        });
+
+        // 新增：点击弹窗外关闭弹窗的逻辑
+        window.onclick = function(event) {
+            var modal = document.getElementById('myModal');
+            if (event.target == modal) {
+                modal.style.display = 'none';
+            }
+        };
+
+        
+    </script>
+</body>
+</html>

@@ -1,6 +1,8 @@
 package main
 
 import (
+	"embed"
+	"fmt"
 	"log"
 	"net/http"
 	"sync"
@@ -8,14 +10,15 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+//go:embed index.html
+var content embed.FS
+
 func WebsocketAndHTML() {
 
-	// 设置静态文件服务器，托管位于 "static" 目录下的文件
-	fs := http.FileServer(http.Dir("./static"))
-	http.Handle("/", fs)
+	http.Handle("/", http.FileServer(http.FS(content)))
 
 	http.HandleFunc("/ws", handleConnections)
-	log.Println("web 服务部署在 http://localhost:9998 ")
+	fmt.Println("web 服务部署在 http://localhost:9998 ")
 	log.Fatal(http.ListenAndServe(":9998", nil))
 
 }

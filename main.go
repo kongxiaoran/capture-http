@@ -19,6 +19,7 @@ import (
 var staticExts = []string{".js", ".css", ".png", ".jpg", ".jpeg", ".gif", ".svg", ".woff", ".woff2", ".ttf", ".eot"}
 
 func main() {
+
 	var recRespDataFlag string
 	var filterResource string
 	var filterOtherHttp string
@@ -151,7 +152,7 @@ $$ |      $$$$$$\ $$ | \$$ |\$$$$$$  |$$$$$$\ $$ | \$$ |$$ |  $$ |
 					for key, values := range r.Form {
 						// 因为同一个键可能对应多个值，所以 values 是一个字符串切片
 						for _, value := range values {
-							fmt.Printf("%s = %s\n", key, value)
+							fmt.Printf("%s : %s\n", key, value)
 							form += key + ":" + value + "<br/>"
 						}
 					}
